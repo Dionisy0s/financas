@@ -67,3 +67,23 @@
 - [x] Testes de routers de configurações (2 testes)
 - [x] Testes de routers de família (2 testes)
 - [x] 19 testes passando ✓
+
+## Funcionalidade Offline (PWA Completo)
+- [x] Service Worker com cache de assets estáticos (App Shell)
+- [x] Service Worker com estratégia Network-First para API e fallback para cache
+- [x] IndexedDB: armazenamento local de transações, categorias, investimentos, dashboard
+- [x] IndexedDB: fila de operações pendentes (sync queue) para mutations offline
+- [x] Hook useOnlineStatus para detectar conectividade em tempo real
+- [x] Hook useOfflineSync para gerenciar sincronização automática
+- [x] Interceptação de mutations tRPC para enfileirar quando offline
+- [x] Indicador visual de status de conexão na sidebar (online/offline/sincronizando)
+- [x] Indicador de operações pendentes na sidebar
+- [x] Sincronização automática ao recuperar conexão
+- [x] Sincronização em background via Background Sync API (quando suportado)
+- [x] Resolução de conflitos: server-wins para dados mais recentes
+- [x] Notificação toast quando sincronização for concluída
+- [x] Página de dashboard funcional 100% offline com dados em cache
+- [x] Página de transações funcional offline (leitura + criação enfileirada)
+- [x] Manifest.json atualizado com ícones e configurações PWA completas
+- [x] Endpoint sync.batch no backend para processar fila em lote
+- [x] 24 testes passando (incluindo 5 testes de sync offline)

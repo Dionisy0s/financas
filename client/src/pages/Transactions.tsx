@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
+import { useOfflineTransactions } from "@/hooks/useOfflineTransactions";
+import { useOfflineSyncContext } from "@/contexts/OfflineSyncContext";
 import {
   formatCurrency,
   formatDate,
@@ -64,21 +66,8 @@ function TransactionForm({
   onSuccess: () => void;
   onClose: () => void;
 }) {
-  const utils = trpc.useUtils();
   const categoriesQuery = trpc.categories.list.useQuery();
-  const createMutation = trpc.transactions.create.useMutation({
-    onSuccess: (data) => {
-      utils.transactions.list.invalidate();
-      utils.dashboard.monthly.invalidate();
-      toast.success(
-        data.installments > 1
-          ? `${data.installments} parcelas criadas com sucesso!`
-          : "Transação adicionada com sucesso!"
-      );
-      onSuccess();
-    },
-    onError: (e) => toast.error(e.message),
-  });
+  const { createTransaction, isCreating } = useOfflineTransactions();
 
   const [form, setForm] = useState({
     type: "expense" as "income" | "expense",
@@ -95,7 +84,7 @@ function TransactionForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.categoryId) return toast.error("Selecione uma categoria");
-    createMutation.mutate({
+    createTransaction({
       type: form.type,
       amount: parseFloat(form.amount),
       description: form.description,
@@ -105,7 +94,7 @@ function TransactionForm({
       transactionDate: form.transactionDate,
       notes: form.notes || undefined,
       installments: parseInt(form.installments),
-    });
+    }).then(() => onSuccess()).catch(() => {});
   };
 
   const categories = categoriesQuery.data ?? [];
@@ -261,8 +250,8 @@ function TransactionForm({
         <Button type="button" variant="outline" className="flex-1" onClick={onClose}>
           Cancelar
         </Button>
-        <Button type="submit" className="flex-1" disabled={createMutation.isPending}>
-          {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
+        <Button type="submit" className="flex-1" disabled={isCreating}>
+          {isCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
         </Button>
       </div>
     </form>
@@ -279,18 +268,10 @@ export default function Transactions() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleteGroupId, setDeleteGroupId] = useState<string | null>(null);
 
-  const utils = trpc.useUtils();
   const txQuery = trpc.transactions.list.useQuery({ year, month });
   const categoriesQuery = trpc.categories.list.useQuery();
-  const deleteMutation = trpc.transactions.delete.useMutation({
-    onSuccess: () => {
-      utils.transactions.list.invalidate();
-      utils.dashboard.monthly.invalidate();
-      toast.success("Transação excluída");
-      setDeleteId(null);
-    },
-    onError: (e) => toast.error(e.message),
-  });
+  const { deleteTransaction, isDeleting } = useOfflineTransactions();
+  const { isOnline } = useOfflineSyncContext();
 
   const catMap = useMemo(() => {
     const m = new Map<number, { name: string; color: string }>();
@@ -312,8 +293,8 @@ export default function Transactions() {
     return txs;
   }, [txQuery.data, typeFilter, search, catMap]);
 
-  const totalIncome = filtered.filter((t) => t.type === "income").reduce((s, t) => s + parseFloat(t.amount), 0);
-  const totalExpense = filtered.filter((t) => t.type === "expense").reduce((s, t) => s + parseFloat(t.amount), 0);
+  const totalIncome = filtered.filter((t: any) => t.type === "income").reduce((s: number, t: any) => s + parseFloat(t.amount), 0);
+  const totalExpense = filtered.filter((t: any) => t.type === "expense").reduce((s: number, t: any) => s + parseFloat(t.amount), 0);
 
   const prevMonth = () => {
     if (month === 1) { setMonth(12); setYear((y) => y - 1); }
@@ -520,7 +501,7 @@ export default function Transactions() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  deleteMutation.mutate({ id: deleteId!, deleteGroup: false });
+                  deleteTransaction({ id: deleteId!, deleteGroup: false }).then(() => { setDeleteId(null); setDeleteGroupId(null); });
                   setDeleteGroupId(null);
                 }}
               >
@@ -530,7 +511,7 @@ export default function Transactions() {
             <AlertDialogAction
               className="bg-destructive hover:bg-destructive/90"
               onClick={() => {
-                deleteMutation.mutate({ id: deleteId!, deleteGroup: !!deleteGroupId });
+                deleteTransaction({ id: deleteId!, deleteGroup: !!deleteGroupId }).then(() => { setDeleteId(null); setDeleteGroupId(null); });
                 setDeleteGroupId(null);
               }}
             >

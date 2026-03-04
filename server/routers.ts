@@ -492,6 +492,106 @@ export const appRouter = router({
       }),
   }),
 
+  // ─── Offline Sync ──────────────────────────────────────────────────────────────
+  sync: router({
+    /**
+     * Batch sync endpoint: receives an array of queued operations and processes them.
+     * Returns per-operation results so the client can remove successfully processed items.
+     */
+    batch: protectedProcedure
+      .input(
+        z.object({
+          operations: z.array(
+            z.object({
+              localId: z.string().optional(),
+              procedure: z.string(),
+              input: z.unknown(),
+              enqueuedAt: z.number(),
+            })
+          ),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const results: Array<{ localId?: string; success: boolean; error?: string }> = [];
+
+        for (const op of input.operations) {
+          try {
+            // Route each operation to the appropriate handler
+            switch (op.procedure) {
+              case 'transactions.create': {
+                const data = op.input as any;
+                const cats = await getCategoriesForUser(ctx.user.id);
+                const categoryExists = cats.some((c: any) => c.id === data.categoryId);
+                if (!categoryExists) throw new Error('Categoria não encontrada');
+
+                const txDate = new Date(data.transactionDate);
+                const installments = data.installments ?? 1;
+
+                if (installments > 1 && data.paymentMethod === 'credit') {
+                  const groupId = nanoid();
+                  const txList = [];
+                  for (let i = 0; i < installments; i++) {
+                    const d = new Date(txDate);
+                    d.setMonth(d.getMonth() + i);
+                    txList.push({
+                      userId: ctx.user.id,
+                      description: `${data.description} (${i + 1}/${installments})`,
+                      amount: (data.amount / installments).toFixed(2),
+                      type: data.type,
+                      categoryId: data.categoryId,
+                      paymentMethod: data.paymentMethod,
+                      expenseType: data.expenseType ?? 'variable',
+                      transactionDate: d,
+                      notes: data.notes ?? null,
+                      isInstallment: true,
+                      installmentNumber: i + 1,
+                      totalInstallments: installments,
+                      installmentGroupId: groupId,
+                    });
+                  }
+                  await createTransactions(txList);
+                } else {
+                  await createTransaction({
+                    userId: ctx.user.id,
+                    description: data.description,
+                    amount: data.amount.toFixed(2),
+                    type: data.type,
+                    categoryId: data.categoryId,
+                    paymentMethod: data.paymentMethod,
+                    expenseType: data.expenseType ?? 'variable',
+                    transactionDate: new Date(data.transactionDate),
+                    notes: data.notes ?? null,
+                    isInstallment: false,
+                    installmentNumber: null,
+                    totalInstallments: null,
+                    installmentGroupId: null,
+                  });
+                }
+                results.push({ localId: op.localId, success: true });
+                break;
+              }
+              case 'transactions.delete': {
+                const data = op.input as any;
+                if (data.deleteGroup && data.id) {
+                  await deleteInstallmentGroup(data.id, ctx.user.id);
+                } else if (data.id) {
+                  await deleteTransaction(data.id, ctx.user.id);
+                }
+                results.push({ localId: op.localId, success: true });
+                break;
+              }
+              default:
+                results.push({ localId: op.localId, success: false, error: `Unknown procedure: ${op.procedure}` });
+            }
+          } catch (err: any) {
+            results.push({ localId: op.localId, success: false, error: err?.message ?? 'Unknown error' });
+          }
+        }
+
+        return { results };
+      }),
+  }),
+
   // ─── AI Insights ─────────────────────────────────────────────────────────────
   insights: router({
     analyze: protectedProcedure
