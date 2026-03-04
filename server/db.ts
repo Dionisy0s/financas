@@ -6,6 +6,7 @@ import {
   FamilyMember,
   InsertCategory,
   InsertInvestment,
+  InsertRecurringTransaction,
   InsertTransaction,
   InsertUser,
   Investment,
@@ -20,6 +21,7 @@ import {
   investmentCategories,
   investmentGoals,
   investments,
+  recurringTransactions,
   transactions,
   userSettings,
   users,
@@ -472,4 +474,113 @@ export async function getTransactionHistoryForUser(
       )
     )
     .orderBy(desc(transactions.transactionDate));
+}
+
+// ─── Recurring Transactions ───────────────────────────────────────────────────
+
+export async function getRecurringTransactionsForUser(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(recurringTransactions)
+    .where(eq(recurringTransactions.userId, userId))
+    .orderBy(desc(recurringTransactions.createdAt));
+}
+
+export async function createRecurringTransaction(data: InsertRecurringTransaction) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const result = await db.insert(recurringTransactions).values(data);
+  const id = (result as any)[0]?.insertId ?? (result as any).insertId;
+  const rows = await db
+    .select()
+    .from(recurringTransactions)
+    .where(eq(recurringTransactions.id, id))
+    .limit(1);
+  return rows[0];
+}
+
+export async function updateRecurringTransaction(
+  id: number,
+  userId: number,
+  data: Partial<InsertRecurringTransaction>
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db
+    .update(recurringTransactions)
+    .set(data)
+    .where(and(eq(recurringTransactions.id, id), eq(recurringTransactions.userId, userId)));
+}
+
+export async function deleteRecurringTransaction(id: number, userId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db
+    .delete(recurringTransactions)
+    .where(and(eq(recurringTransactions.id, id), eq(recurringTransactions.userId, userId)));
+}
+
+/**
+ * Generates transactions from active recurring templates for the given month.
+ * Skips templates that were already generated for this month.
+ */
+export async function generateRecurringForMonth(
+  userId: number,
+  year: number,
+  month: number
+): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+
+  const templates = await db
+    .select()
+    .from(recurringTransactions)
+    .where(
+      and(
+        eq(recurringTransactions.userId, userId),
+        eq(recurringTransactions.isActive, true)
+      )
+    );
+
+  let generated = 0;
+
+  for (const tmpl of templates) {
+    // Skip if already generated for this month
+    if (tmpl.lastGeneratedYear === year && tmpl.lastGeneratedMonth === month) {
+      continue;
+    }
+
+    // Clamp day to last day of month (e.g. Feb 30 → Feb 28)
+    const lastDay = new Date(year, month, 0).getDate();
+    const day = Math.min(tmpl.dayOfMonth, lastDay);
+    const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+    await db.insert(transactions).values({
+      userId,
+      categoryId: tmpl.categoryId,
+      type: tmpl.type,
+      amount: tmpl.amount,
+      description: tmpl.description,
+      paymentMethod: tmpl.paymentMethod,
+      expenseType: tmpl.expenseType,
+      transactionDate: new Date(dateStr),
+      notes: tmpl.notes,
+      isInstallment: false,
+      installmentGroupId: null,
+      installmentNumber: null,
+      totalInstallments: null,
+    });
+
+    // Update lastGenerated marker
+    await db
+      .update(recurringTransactions)
+      .set({ lastGeneratedYear: year, lastGeneratedMonth: month })
+      .where(eq(recurringTransactions.id, tmpl.id));
+
+    generated++;
+  }
+
+  return generated;
 }

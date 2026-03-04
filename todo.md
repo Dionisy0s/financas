@@ -87,3 +87,12 @@
 - [x] Manifest.json atualizado com ícones e configurações PWA completas
 - [x] Endpoint sync.batch no backend para processar fila em lote
 - [x] 24 testes passando (incluindo 5 testes de sync offline)
+
+## Próximas Funcionalidades
+
+- [x] Suporte offline para criação de investimentos (hook useOfflineInvestments)
+- [x] Suporte offline para criação/edição/exclusão de categorias (hook useOfflineCategories)
+- [x] Exportação de relatório mensal em PDF com tabelas e breakdown por categoria
+- [x] Recorrência automática de transações (tabela recurring_transactions + geração mensal)
+- [x] Interface para gerenciar transações recorrentes (listar, pausar, excluir, gerar)
+- [x] 33 testes passando (auth + categorias + transações + dashboard + investimentos + configurações + família + sync offline + recorrências)

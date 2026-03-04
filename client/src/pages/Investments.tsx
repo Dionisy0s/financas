@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
+import { useOfflineInvestments } from "@/hooks/useOfflineInvestments";
 import { formatCurrency, formatDate, percentOf } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,12 +16,8 @@ import { Plus, Trash2, TrendingUp, Target, Loader2, Wallet } from "lucide-react"
 import { toast } from "sonner";
 
 function InvestmentForm({ onSuccess, onClose }: { onSuccess: () => void; onClose: () => void }) {
-  const utils = trpc.useUtils();
   const catsQuery = trpc.investments.categories.useQuery();
-  const createMutation = trpc.investments.create.useMutation({
-    onSuccess: () => { utils.investments.list.invalidate(); toast.success("Investimento adicionado!"); onSuccess(); },
-    onError: (e) => toast.error(e.message),
-  });
+  const { createInvestment, isCreating } = useOfflineInvestments();
 
   const [form, setForm] = useState({
     categoryId: "",
@@ -33,13 +30,13 @@ function InvestmentForm({ onSuccess, onClose }: { onSuccess: () => void; onClose
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.categoryId) return toast.error("Selecione uma categoria");
-    createMutation.mutate({
+    createInvestment({
       categoryId: parseInt(form.categoryId),
       name: form.name,
       amount: parseFloat(form.amount),
       investmentDate: form.investmentDate,
       notes: form.notes || undefined,
-    });
+    }).then(() => onSuccess()).catch(() => {});
   };
 
   return (
@@ -103,8 +100,8 @@ function InvestmentForm({ onSuccess, onClose }: { onSuccess: () => void; onClose
       </div>
       <div className="flex gap-2 pt-2">
         <Button type="button" variant="outline" className="flex-1" onClick={onClose}>Cancelar</Button>
-        <Button type="submit" className="flex-1" disabled={createMutation.isPending}>
-          {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
+        <Button type="submit" className="flex-1" disabled={isCreating}>
+          {isCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
         </Button>
       </div>
     </form>
@@ -195,14 +192,10 @@ function GoalForm({ onSuccess, onClose }: { onSuccess: () => void; onClose: () =
 }
 
 export default function Investments() {
-  const utils = trpc.useUtils();
   const investmentsQuery = trpc.investments.list.useQuery();
   const catsQuery = trpc.investments.categories.useQuery();
   const goalsQuery = trpc.investments.goals.list.useQuery();
-  const deleteMutation = trpc.investments.delete.useMutation({
-    onSuccess: () => { utils.investments.list.invalidate(); toast.success("Investimento excluído"); setDeleteId(null); },
-    onError: (e) => toast.error(e.message),
-  });
+  const { deleteInvestment, isDeleting } = useOfflineInvestments();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [goalDialogOpen, setGoalDialogOpen] = useState(false);
@@ -349,7 +342,7 @@ export default function Investments() {
               <ResponsiveContainer width="45%" height={180}>
                 <PieChart>
                   <Pie data={byCategory} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2} dataKey="total">
-                    {byCategory.map((entry, i) => (
+                    {byCategory.map((entry: any, i: number) => (
                       <Cell key={i} fill={entry.color} />
                     ))}
                   </Pie>
@@ -360,7 +353,7 @@ export default function Investments() {
                 </PieChart>
               </ResponsiveContainer>
               <div className="flex-1 space-y-2">
-                {byCategory.map((cat) => (
+                {byCategory.map((cat: any) => (
                   <div key={cat.name} className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: cat.color }} />
                     <span className="text-xs text-muted-foreground flex-1 truncate">{cat.name}</span>
@@ -425,7 +418,7 @@ export default function Investments() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => deleteMutation.mutate({ id: deleteId! })}>
+            <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => { deleteInvestment(deleteId!).then(() => setDeleteId(null)); }}>
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>

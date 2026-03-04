@@ -16,6 +16,7 @@ import {
   LogOut,
   ChevronRight,
   WifiOff,
+  CalendarClock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -26,6 +27,7 @@ import { useOfflineSyncContext } from "@/contexts/OfflineSyncContext";
 const navItems = [
   { href: "/", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/transacoes", icon: ArrowLeftRight, label: "Transações" },
+  { href: "/recorrencias", icon: CalendarClock, label: "Recorrências" },
   { href: "/categorias", icon: Tag, label: "Categorias" },
   { href: "/investimentos", icon: TrendingUp, label: "Investimentos" },
   { href: "/relatorios", icon: FileText, label: "Relatórios" },

@@ -155,3 +155,25 @@ export const userSettings = mysqlTable("user_settings", {
 });
 
 export type UserSettings = typeof userSettings.$inferSelect;
+
+// Transações recorrentes (modelo/template que gera transações mensalmente)
+export const recurringTransactions = mysqlTable("recurring_transactions", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  categoryId: int("categoryId").notNull(),
+  type: mysqlEnum("type", ["income", "expense"]).notNull(),
+  amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+  description: varchar("description", { length: 500 }).notNull(),
+  paymentMethod: mysqlEnum("paymentMethod", ["pix", "credit", "debit", "cash", "boleto"]).notNull(),
+  expenseType: mysqlEnum("expenseType", ["fixed", "variable"]).default("fixed").notNull(),
+  dayOfMonth: int("dayOfMonth").notNull(), // dia do mês em que ocorre (1-28)
+  notes: text("notes"),
+  isActive: boolean("isActive").default(true).notNull(),
+  lastGeneratedYear: int("lastGeneratedYear"),
+  lastGeneratedMonth: int("lastGeneratedMonth"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type RecurringTransaction = typeof recurringTransactions.$inferSelect;
+export type InsertRecurringTransaction = typeof recurringTransactions.$inferInsert;

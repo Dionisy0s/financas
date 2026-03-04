@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { useOfflineCategories } from "@/hooks/useOfflineCategories";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -116,12 +117,8 @@ function CategoryForm({
 }
 
 export default function Categories() {
-  const utils = trpc.useUtils();
   const categoriesQuery = trpc.categories.list.useQuery();
-  const deleteMutation = trpc.categories.delete.useMutation({
-    onSuccess: () => { utils.categories.list.invalidate(); toast.success("Categoria excluída"); setDeleteId(null); },
-    onError: (e) => toast.error(e.message),
-  });
+  const { deleteCategory } = useOfflineCategories();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
@@ -249,7 +246,7 @@ export default function Categories() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive hover:bg-destructive/90"
-              onClick={() => deleteMutation.mutate({ id: deleteId! })}
+              onClick={() => deleteCategory(deleteId!).then(() => setDeleteId(null))}
             >
               Excluir
             </AlertDialogAction>

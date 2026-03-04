@@ -1,12 +1,14 @@
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
+import { generateMonthlyReport } from "@/lib/pdfReport";
+import type { ReportData } from "@/lib/pdfReport";
 import { formatCurrency, formatMonthYear, getCurrentYearMonth, formatDate, getPaymentMethodLabel, getExpenseTypeLabel } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { FileText, Download, TrendingUp, TrendingDown, Loader2 } from "lucide-react";
+import { FileText, Download, TrendingUp, TrendingDown, Loader2, FileDown } from "lucide-react";
 import { formatMonthShort } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -46,6 +48,49 @@ export default function Reports() {
     (catsQuery.data ?? []).forEach((c) => m.set(c.id, c.name));
     return m;
   }, [catsQuery.data]);
+
+  const handleExportPDF = async () => {
+    const transactions = txQuery.data ?? [];
+    const dashData = dashboardQuery.data;
+    if (transactions.length === 0 && !dashData) {
+      toast.error("Nenhum dado para exportar");
+      return;
+    }
+    const categoryBreakdown = (dashData?.categoryBreakdown ?? [])
+      .filter((c) => c.expense > 0)
+      .map((c) => ({ name: c.name, total: c.expense, count: 0, color: c.color }));
+
+    const reportData: ReportData = {
+      userName: "Meu Relatório",
+      month,
+      year,
+      summary: {
+        totalIncome: dashData?.totalIncome ?? 0,
+        totalExpense: dashData?.totalExpense ?? 0,
+        balance: dashData?.balance ?? 0,
+        fixedExpenses: dashData?.fixedExpense ?? 0,
+        variableExpenses: dashData?.variableExpense ?? 0,
+        topCategory: dashData?.categoryBreakdown?.[0]?.name ?? "—",
+        percentCommitted: dashData?.totalIncome && dashData.totalIncome > 0 ? (dashData.totalExpense / dashData.totalIncome) * 100 : 0,
+      },
+      transactions: transactions.map((t) => ({
+        description: t.description,
+        amount: t.amount,
+        type: t.type as 'income' | 'expense',
+        categoryName: catMap.get(t.categoryId) ?? "Outros",
+        paymentMethod: t.paymentMethod,
+        expenseType: (t.expenseType ?? 'variable') as 'fixed' | 'variable',
+        transactionDate: t.transactionDate as any,
+      })),
+      categoryBreakdown,
+    };
+    try {
+      await generateMonthlyReport(reportData);
+      toast.success("PDF gerado com sucesso!");
+    } catch (e) {
+      toast.error("Erro ao gerar PDF");
+    }
+  };
 
   const handleExportCSV = () => {
     const rows = (txQuery.data ?? []).map((t) => ({
@@ -109,6 +154,10 @@ export default function Reports() {
           <Button size="sm" variant="outline" className="gap-1.5 h-8" onClick={handleExportCSV}>
             <Download className="w-3.5 h-3.5" />
             CSV
+          </Button>
+          <Button size="sm" variant="outline" className="gap-1.5 h-8 border-primary/50 text-primary hover:bg-primary/10" onClick={handleExportPDF}>
+            <FileDown className="w-3.5 h-3.5" />
+            PDF
           </Button>
         </div>
       </div>

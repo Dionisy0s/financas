@@ -11,6 +11,7 @@ import Investments from "./pages/Investments";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import Family from "./pages/Family";
+import Recurring from "./pages/Recurring";
 import Login from "./pages/Login";
 import JoinFamily from "./pages/JoinFamily";
 import AppLayout from "./components/AppLayout";
@@ -22,6 +23,7 @@ function AuthenticatedRoutes() {
       <Switch>
         <Route path="/" component={Dashboard} />
         <Route path="/transacoes" component={Transactions} />
+        <Route path="/recorrencias" component={Recurring} />
         <Route path="/categorias" component={Categories} />
         <Route path="/investimentos" component={Investments} />
         <Route path="/relatorios" component={Reports} />

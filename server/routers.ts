@@ -29,6 +29,11 @@ import {
   updateTransaction,
   upsertInvestmentGoal,
   upsertUserSettings,
+  createRecurringTransaction,
+  updateRecurringTransaction,
+  deleteRecurringTransaction,
+  generateRecurringForMonth,
+  getRecurringTransactionsForUser,
 } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { getSessionCookieOptions } from "./_core/cookies";
@@ -589,6 +594,73 @@ export const appRouter = router({
         }
 
         return { results };
+      }),
+  }),
+
+  // ─── Recurring Transactions ──────────────────────────────────────────────────
+  recurring: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      return getRecurringTransactionsForUser(ctx.user.id);
+    }),
+
+    create: protectedProcedure
+      .input(z.object({
+        description: z.string().min(1),
+        amount: z.number().positive(),
+        type: z.enum(["income", "expense"]),
+        categoryId: z.number().int().positive(),
+        paymentMethod: z.enum(["pix", "credit", "debit", "cash", "boleto"]),
+        expenseType: z.enum(["fixed", "variable"]).default("fixed"),
+        dayOfMonth: z.number().int().min(1).max(28),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return createRecurringTransaction({
+          userId: ctx.user.id,
+          categoryId: input.categoryId,
+          type: input.type,
+          amount: String(input.amount),
+          description: input.description,
+          paymentMethod: input.paymentMethod,
+          expenseType: input.expenseType,
+          dayOfMonth: input.dayOfMonth,
+          notes: input.notes ?? null,
+          isActive: true,
+        });
+      }),
+
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number().int().positive(),
+        description: z.string().min(1).optional(),
+        amount: z.number().positive().optional(),
+        categoryId: z.number().int().positive().optional(),
+        paymentMethod: z.enum(["pix", "credit", "debit", "cash", "boleto"]).optional(),
+        expenseType: z.enum(["fixed", "variable"]).optional(),
+        dayOfMonth: z.number().int().min(1).max(28).optional(),
+        notes: z.string().optional(),
+        isActive: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { id, ...data } = input;
+        const updateData: any = { ...data };
+        if (data.amount !== undefined) updateData.amount = String(data.amount);
+        await updateRecurringTransaction(id, ctx.user.id, updateData);
+        return { success: true };
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        await deleteRecurringTransaction(input.id, ctx.user.id);
+        return { success: true };
+      }),
+
+    generate: protectedProcedure
+      .input(z.object({ year: z.number().int(), month: z.number().int().min(1).max(12) }))
+      .mutation(async ({ ctx, input }) => {
+        const count = await generateRecurringForMonth(ctx.user.id, input.year, input.month);
+        return { generated: count };
       }),
   }),
 
