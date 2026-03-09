@@ -115,3 +115,12 @@
 - [ ] Disparo automático: lembrete de contas no dia do vencimento
 - [x] Notificações por email via sistema de owner notifications
 - [x] 43 testes passando (incluindo 10 testes de notificações)
+
+## Correções de Layout Responsivo
+
+- [x] Corrigir overflow dos valores monetários nos cards de resumo do Dashboard
+- [x] Aplicar font-size responsivo com clamp() aos valores
+- [x] Adicionar overflow: hidden aos cards
+- [x] Aplicar word-break e overflow-wrap aos valores
+- [x] Adicionar estilos globais de overflow-wrap no CSS
+- [x] Testar layout em mobile (375px, 480px, 768px)

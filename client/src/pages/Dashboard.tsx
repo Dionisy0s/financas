@@ -63,16 +63,20 @@ function StatCard({
   };
 
   return (
-    <Card className="bg-card border-border/50 hover:border-border transition-colors">
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between mb-3">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{title}</p>
-          <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
-            <Icon className={`w-4 h-4 ${colors[variant]}`} />
+    <Card className="bg-card border-border/50 hover:border-border transition-colors overflow-hidden">
+      <CardContent className="p-3 sm:p-5">
+        <div className="flex items-start justify-between mb-3 gap-2">
+          <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider flex-1 min-w-0">{title}</p>
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
+            <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${colors[variant]}`} />
           </div>
         </div>
-        <p className={`text-2xl font-bold ${colors[variant]}`}>{value}</p>
-        {trend && <p className="text-xs text-muted-foreground mt-1">{trend}</p>}
+        <div className="min-w-0 max-w-full overflow-hidden">
+          <p className={`font-bold ${colors[variant]} break-words text-[clamp(16px,4vw,28px)] leading-tight`}>
+            {value}
+          </p>
+        </div>
+        {trend && <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 break-words">{trend}</p>}
       </CardContent>
     </Card>
   );
