@@ -169,21 +169,20 @@ export default defineConfig({
   outDir: path.resolve(import.meta.dirname, "dist"),
   emptyOutDir: true,
 },
+server: {
+  host: true,
+  allowedHosts: [
+    ".manuspre.computer",
+    ".manus.computer",
+    ".manus-asia.computer",
+    ".manuscomputer.ai",
+    ".manusvm.computer",
+    "localhost",
+    "127.0.0.1",
+  ],
+  fs: {
+    strict: true,
+    deny: ["**/.*"],
   },
-  server: {
-    host: true,
-    allowedHosts: [
-      ".manuspre.computer",
-      ".manus.computer",
-      ".manus-asia.computer",
-      ".manuscomputer.ai",
-      ".manusvm.computer",
-      "localhost",
-      "127.0.0.1",
-    ],
-    fs: {
-      strict: true,
-      deny: ["**/.*"],
-    },
-  },
+},
 });
