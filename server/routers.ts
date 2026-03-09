@@ -36,6 +36,18 @@ import {
   getRecurringTransactionsForUser,
 } from "./db";
 import { invokeLLM } from "./_core/llm";
+import {
+  notify,
+  createNotification,
+  getNotificationsForUser,
+  countUnreadNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+  deleteNotification,
+  deleteAllNotifications,
+  savePushSubscription,
+  removePushSubscription,
+} from "./notifications";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
@@ -722,6 +734,86 @@ Seja direto, prático e use linguagem acessível. Formate com markdown.`;
         return { analysis: content, month: monthName, year: input.year };
       }),
   }),
-});
+  notifications: router({
+    // Listar notificações do usuário
+    list: protectedProcedure
+      .input(z.object({ limit: z.number().min(1).max(100).optional() }).optional())
+      .query(async ({ ctx, input }) => {
+        return getNotificationsForUser(ctx.user.id, input?.limit ?? 50);
+      }),
 
+    // Contar não lidas
+    unreadCount: protectedProcedure.query(async ({ ctx }) => {
+      const count = await countUnreadNotifications(ctx.user.id);
+      return { count };
+    }),
+
+    // Marcar uma como lida
+    markRead: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await markNotificationRead(input.id, ctx.user.id);
+        return { success: true };
+      }),
+
+    // Marcar todas como lidas
+    markAllRead: protectedProcedure.mutation(async ({ ctx }) => {
+      await markAllNotificationsRead(ctx.user.id);
+      return { success: true };
+    }),
+
+    // Deletar uma notificação
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await deleteNotification(input.id, ctx.user.id);
+        return { success: true };
+      }),
+
+    // Deletar todas as notificações
+    deleteAll: protectedProcedure.mutation(async ({ ctx }) => {
+      await deleteAllNotifications(ctx.user.id);
+      return { success: true };
+    }),
+
+    // Criar notificação manual (para testes)
+    create: protectedProcedure
+      .input(z.object({
+        title: z.string().min(1),
+        body: z.string().min(1),
+        type: z.enum(["alert", "goal", "recurring", "summary", "reminder", "info"]).optional(),
+        link: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return createNotification({
+          userId: ctx.user.id,
+          title: input.title,
+          body: input.body,
+          type: input.type ?? "info",
+          link: input.link ?? null,
+          isRead: false,
+        });
+      }),
+
+    // Salvar push subscription
+    subscribePush: protectedProcedure
+      .input(z.object({
+        endpoint: z.string(),
+        p256dh: z.string(),
+        auth: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await savePushSubscription(ctx.user.id, input.endpoint, input.p256dh, input.auth);
+        return { success: true };
+      }),
+
+    // Remover push subscription
+    unsubscribePush: protectedProcedure
+      .input(z.object({ endpoint: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        await removePushSubscription(ctx.user.id, input.endpoint);
+        return { success: true };
+      }),
+  }),
+});
 export type AppRouter = typeof appRouter;

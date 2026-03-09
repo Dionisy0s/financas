@@ -8,9 +8,49 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Settings2, Bell, DollarSign, AlertTriangle, Loader2, Save } from "lucide-react";
+import { Settings2, Bell, DollarSign, AlertTriangle, Loader2, Save, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
+
+function PushNotificationToggle() {
+  const { isSupported, isSubscribed, subscribe, unsubscribe, isLoading } = usePushNotifications();
+
+  if (!isSupported) {
+    return (
+      <div className="pt-3 border-t border-border/30">
+        <p className="text-[10px] text-muted-foreground">
+          Notificacoes push nao suportadas neste navegador.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="pt-3 border-t border-border/30 flex items-center justify-between">
+      <div>
+        <p className="text-sm font-medium">Notificacoes Push</p>
+        <p className="text-[10px] text-muted-foreground mt-0.5">
+          Receba alertas no celular e desktop
+        </p>
+      </div>
+      <Button
+        variant={isSubscribed ? "outline" : "default"}
+        size="sm"
+        onClick={() => (isSubscribed ? unsubscribe() : subscribe())}
+        disabled={isLoading}
+        className="gap-2"
+      >
+        {isLoading ? (
+          <Loader2 className="w-3 h-3 animate-spin" />
+        ) : (
+          <Smartphone className="w-3 h-3" />
+        )}
+        {isSubscribed ? "Desativar" : "Ativar"}
+      </Button>
+    </div>
+  );
+}
 
 export default function Settings() {
   const { user } = useAuth();
@@ -141,7 +181,7 @@ export default function Settings() {
             Notificações
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">Notificações por Email</p>
@@ -154,6 +194,7 @@ export default function Settings() {
               onCheckedChange={setEmailNotifications}
             />
           </div>
+          <PushNotificationToggle />
         </CardContent>
       </Card>
 

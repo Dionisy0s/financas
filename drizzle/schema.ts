@@ -177,3 +177,37 @@ export const recurringTransactions = mysqlTable("recurring_transactions", {
 
 export type RecurringTransaction = typeof recurringTransactions.$inferSelect;
 export type InsertRecurringTransaction = typeof recurringTransactions.$inferInsert;
+
+// Notificações in-app
+export const notifications = mysqlTable("notifications", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  body: text("body").notNull(),
+  type: mysqlEnum("type", [
+    "alert",        // gasto ultrapassou limite
+    "goal",         // meta atingida
+    "recurring",    // recorrência gerada
+    "summary",      // resumo mensal
+    "reminder",     // lembrete de conta
+    "info",         // informação geral
+  ]).default("info").notNull(),
+  isRead: boolean("isRead").default(false).notNull(),
+  link: varchar("link", { length: 255 }), // rota interna opcional
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;
+
+// Subscriptions de push notification (Web Push API)
+export const pushSubscriptions = mysqlTable("push_subscriptions", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  endpoint: text("endpoint").notNull(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;

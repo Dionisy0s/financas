@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { ConnectionStatus } from "@/components/ConnectionStatus";
+import { NotificationBell } from "@/components/NotificationBell";
 import { useOfflineSyncContext } from "@/contexts/OfflineSyncContext";
 
 const navItems = [
@@ -111,8 +112,12 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
         ))}
       </nav>
 
-      {/* Connection Status */}
-      <div className="px-3 pb-1 border-t border-sidebar-border pt-2">
+      {/* Notifications & Connection Status */}
+      <div className="px-3 pb-1 border-t border-sidebar-border pt-2 space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Notificações</span>
+          <NotificationBell />
+        </div>
         <ConnectionStatus expanded={true} />
       </div>
 

@@ -96,3 +96,22 @@
 - [x] Recorrência automática de transações (tabela recurring_transactions + geração mensal)
 - [x] Interface para gerenciar transações recorrentes (listar, pausar, excluir, gerar)
 - [x] 33 testes passando (auth + categorias + transações + dashboard + investimentos + configurações + família + sync offline + recorrências)
+
+## Sistema de Notificações Personalizadas
+
+- [x] Tabela de notificações no banco (título, corpo, tipo, lida, userId)
+- [x] Tabela de push subscriptions (endpoint, keys, userId)
+- [x] Helpers de banco para CRUD de notificações e subscriptions
+- [x] Router tRPC: listar, marcar como lida, marcar todas como lidas, deletar
+- [x] Router tRPC: salvar/remover push subscription
+- [x] Sino na sidebar com badge de não lidas
+- [x] Painel dropdown de notificações com histórico
+- [x] Notificações push (Web Push API) com service worker
+- [x] Botão de ativar/desativar push nas configurações
+- [ ] Disparo automático: gastos ultrapassam limite definido
+- [ ] Disparo automático: meta de investimento atingida
+- [ ] Disparo automático: recorrência gerada com sucesso
+- [ ] Disparo automático: resumo financeiro mensal
+- [ ] Disparo automático: lembrete de contas no dia do vencimento
+- [x] Notificações por email via sistema de owner notifications
+- [x] 43 testes passando (incluindo 10 testes de notificações)
